@@ -42,7 +42,7 @@ Note that an empty line corresponds to an empty string input. Both headers must 
 EXAMPLE: `p3.10.10000.tm.wordlist` is the solution for problem `p3`; it should contain a list of words to accept/reject by the student submission (a Turing machine), and the grader will run the student submission on each word for no more than 10000 steps. The contents of the file might be:
 
 > `## ACCEPT ##`<br>
-> ``<br>
+> ` `<br>
 > `012`<br>
 > `001122`<br>
 > `## REJECT ##`<br>
