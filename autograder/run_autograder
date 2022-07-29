@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# paths specific to gradescope's autograder
+AUTOGRADER_PATH=/autograder/source
+cd $AUTOGRADER_PATH
+
+python3 grader.py

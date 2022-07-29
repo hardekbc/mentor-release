@@ -1,0 +1,7 @@
+// Language is { w in {a,b}* | any a is immediately preceded by b }
+alphabet: {a, b}
+start: q0
+accepting: {q0, q2}
+q0 (a -> q1) (b -> q2)
+q1 (a -> q1) (b -> q1)
+q2 (a -> q0) (b -> q2)

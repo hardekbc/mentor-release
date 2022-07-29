@@ -1,0 +1,65 @@
+// L = { a{n}b{n}c{n} | n >= 0 }
+alphabet: {a,b,c,x}
+
+// Reset tape head to leftmost position.
+def StartOfTape [[
+  start: q0
+  q0 (. -> .,S accept)
+]]
+
+// Move one cell right, without writing anything.
+def Right [[
+  start: q0
+  q0 (. -> .,R accept)
+]]
+
+// Accept if the current tape cell belongs in A, otherwise reject.
+def Read(A) [[
+  start: q0
+  q0 ($A -> .,H accept)
+]]
+
+// Write A to the current tape cell (miscompiles if A is a non-singleton set).
+def Write(A) [[
+  start: q0
+  q0 (. -> $A,H accept)
+]]
+
+// Move right until we read a symbol in A.
+def FindRight(A) {
+  while not Read($A) Right
+  accept
+}
+
+// Verify whether the input is in the correct format: "_ | a+b+c+".
+def CorrectFormat {
+  if Read(_) accept
+  if not Read(a) reject
+  FindRight(-{a})
+  if not Read(b) reject
+  FindRight(-{b})
+  if not Read(c) reject
+  FindRight(-{c})
+  if Read(_) accept
+}
+
+// Verify that the input is in the correct format, then iterate marking off
+// matching a, b, and c symbols on the tape. If they all match then accept,
+// otherwise reject.
+def Main {
+  CorrectFormat
+  StartOfTape
+  while not Read(_) {
+    Read(a)
+    Write(x)
+    FindRight({b,_})
+    if Read(_) reject
+    Write(x)
+    FindRight({c,_})
+    if Read(_) reject
+    Write(x)
+    StartOfTape
+    FindRight(-{x})
+  }
+  accept
+}

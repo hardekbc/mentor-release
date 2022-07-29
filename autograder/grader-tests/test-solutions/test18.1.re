@@ -1,0 +1,2 @@
+alphabet: {a}
+a*

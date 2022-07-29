@@ -1,0 +1,8 @@
+// Any number of 'a' followed by any number of 'b'.
+alphabet: {a, b}
+start: q0
+accepting: {q3}
+q0 (_ -> q1) (_ -> q2) (_ -> q3)
+q1 (a -> q1) ({a,_} -> q2)
+q2 (_ -> q3)
+q3 (b -> q3)

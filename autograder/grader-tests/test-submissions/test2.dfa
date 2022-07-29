@@ -1,0 +1,6 @@
+// should be graded as wrong with both extra and missing words.
+alphabet: {a,b}
+start: q0
+accepting: {q1}
+q0 ({a,b} -> q1)
+q1 ({a,b} -> q1)

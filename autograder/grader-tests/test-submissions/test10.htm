@@ -1,0 +1,60 @@
+// should be graded as incorrect, with false negative and false positive and
+// a timeout.
+alphabet: {0,1,x}
+
+def Left [[
+  start: q0
+  q0 (. -> .,L accept)
+]]
+
+def Right [[
+  start: q0
+  q0 (. -> .,R accept)
+]]
+
+def Read(A) [[
+  start: q0
+  q0 ($A -> .,H accept)
+]]
+
+def Write(A) [[
+  start: q0
+  q0 (. -> $A,H accept)
+]]
+
+def FindLeft(A) {
+  while not Read($A) Left
+  accept
+}
+
+def FindRight(A) {
+  while not Read($A) Right
+  accept
+}
+
+def Main {
+  // introduce false positive, false negative, and timeout
+  if Read(0) {
+    Right
+    if Read(1) reject // reject "01"
+    Left
+  } else if Read(1) {
+    Right
+    if Read(1) FindLeft(x) // infinite loop on anything starting with "11"
+    if Read(_) accept // accept "1"
+  }
+
+  if Read(_) accept
+  while Read(0) {
+    Write(_)
+    Right
+    FindRight({1,_})
+    if Read(_) reject
+    Write(x)
+    FindLeft(_)
+    Right
+  }
+  if not Read(x) reject
+  FindRight(-{x})
+  if Read(_) accept
+}

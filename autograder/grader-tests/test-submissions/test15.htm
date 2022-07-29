@@ -1,0 +1,48 @@
+// should be graded as correct (empty solution wordlists).
+alphabet: {0,1,x}
+
+def Left [[
+  start: q0
+  q0 (. -> .,L accept)
+]]
+
+def Right [[
+  start: q0
+  q0 (. -> .,R accept)
+]]
+
+def Read(A) [[
+  start: q0
+  q0 ($A -> .,H accept)
+]]
+
+def Write(A) [[
+  start: q0
+  q0 (. -> $A,H accept)
+]]
+
+def FindLeft(A) {
+  while not Read($A) Left
+  accept
+}
+
+def FindRight(A) {
+  while not Read($A) Right
+  accept
+}
+
+def Main {
+  if Read(_) accept
+  while Read(0) {
+    Write(_)
+    Right
+    FindRight({1,_})
+    if Read(_) reject
+    Write(x)
+    FindLeft(_)
+    Right
+  }
+  if not Read(x) reject
+  FindRight(-{x})
+  if Read(_) accept
+}
