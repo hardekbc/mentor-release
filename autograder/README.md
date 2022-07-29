@@ -8,17 +8,17 @@
 
 # Solution Formats
 
-The solution files take different forms depending on the type of problem being graded. Each filename starts with <problem-id>, and the student submissions are assumed to use the same id. For example, if the problem id is `problem1a` and it is a DFA construction problem, then the solution might be named `problem1a.1.dfa` and the student submission should be named `problem1a.dfa`.
+The solution files take different forms depending on the type of problem being graded. Each filename starts with `<problem-id>`, and the student submissions are assumed to use the same id. For example, if the problem id is `problem1a` and it is a DFA construction problem, then the solution might be named `problem1a.1.dfa` and the student submission should be named `problem1a.dfa`.
 
 ## Regular Language Solutions
 
-The filename format is `<problem-id>.<point-value>.{dfa,nfa,re}`, where the problem id is any string that doesn't contain '.', the point value is the number of points this problem is worth (an integer value), and the suffix says whether the solution file contains a Mentor DFA, NFA, or regular expression description.
+The filename format is `<problem-id>.<point-value>.{dfa,nfa,re}`, where the problem id is any string that doesn't contain `.`, the point value is the number of points this problem is worth (an integer value), and the suffix says whether the solution file contains a Mentor DFA, NFA, or regular expression description.
 
 EXAMPLE: `p1.5.nfa` is the solution for problem `p1`, worth 5 points, and in the form of an NFA.
 
 ## Context-Free Language Solutions
 
-The filename format is `<problem-id>.<point-value>.<num-words>.{cfg,pda}`, where the problem id is any string that doesn't contain '.', the point value is the number of points this problem is worth (an integer value), <num-words> is the number of words that should be used to check the student submission against the solition (an integer value), and the suffix says whether the solution file contains a Mentor CFG or PDA description.
+The filename format is `<problem-id>.<point-value>.<num-words>.{cfg,pda}`, where the problem id is any string that doesn't contain `.`, the point value is the number of points this problem is worth (an integer value), `<num-words>` is the number of words that should be used to check the student submission against the solition (an integer value), and the suffix says whether the solution file contains a Mentor CFG or PDA description.
 
 EXAMPLE: `p2.1.1000.cfg` is the solution for problem `p2`, worth 1 point, using 1000 words to compare the solution against the submission, and in the form of a CFG.
 
@@ -28,27 +28,27 @@ EXAMPLE: `p2.cfg.wordlist` would contain the words for `p2.1.1000.cfg` pre-gener
 
 ## Unrestricted Language Solutions.
 
-The filename format is `<problem-id>.<point-value>.<max-steps>.{tm,htm}.wordlist`, where the problem id is any string that doesn't contain '.', the point value is the number of points this problem is worth (an integer value), <max-steps> is the maximum number of computation steps the student submission is allowed to run before being forced to terminate (an integer value), and the suffix says whether the problem is for Turing machines or hierarchical Turing machines.
+The filename format is `<problem-id>.<point-value>.<max-steps>.{tm,htm}.wordlist`, where the problem id is any string that doesn't contain `.`, the point value is the number of points this problem is worth (an integer value), `<max-steps>` is the maximum number of computation steps the student submission is allowed to run before being forced to terminate (an integer value), and the suffix (before `wordlist`) says whether the problem is for Turing machines or hierarchical Turing machines.
 
 Unlike the regular and context-free solution files, the unrestricted solution files do not contain a Turing machine or hierarchical Turing machine description. Instead, they contain (1) a list of words that the student submission should accept; and (2) a list of words that the student submission should reject. The file format is:
 
-> ## ACCEPT ##
-> <list of words separated by newlines>
-> ## REJECT ##
-> <list of words separated by newlines>
+> `## ACCEPT ##`
+> `<list of words separated by newlines>`
+> `## REJECT ##`
+> `<list of words separated by newlines>`
 
 Note that an empty line corresponds to an empty string input. Both headers must be present even if their respective word list is empty.
 
 EXAMPLE: `p3.10.10000.tm.wordlist` is the solution for problem `p3`; it should contain a list of words to accept/reject by the student submission (a Turing machine), and the grader will run the student submission on each word for no more than 10000 steps. The contents of the file might be:
 
-> ## ACCEPT ##
->
-> 012
-> 001122
-> ## REJECT ##
-> 01
-> 00112
-> 01122
+> `## ACCEPT ##`
+> ``
+> `012`
+> `001122`
+> `## REJECT ##`
+> `01`
+> `00112`
+> `01122`
 
 (Note that the blank line after `## ACCEPT ##` means that the empty string should be accepted.)
 
