@@ -32,23 +32,27 @@ The filename format is `<problem-id>.<point-value>.<max-steps>.{tm,htm}.wordlist
 
 Unlike the regular and context-free solution files, the unrestricted solution files do not contain a Turing machine or hierarchical Turing machine description. Instead, they contain (1) a list of words that the student submission should accept; and (2) a list of words that the student submission should reject. The file format is:
 
-> `## ACCEPT ##`<br>
-> `<list of words separated by newlines>`<br>
-> `## REJECT ##`<br>
-> `<list of words separated by newlines>`
+> ```text
+> ## ACCEPT ##
+> <list of words separated by newlines>
+> ## REJECT ##
+> <list of words separated by newlines>
+> ```
 
 Note that an empty line corresponds to an empty string input. Both headers must be present even if their respective word list is empty.
 
 EXAMPLE: `p3.10.10000.tm.wordlist` is the solution for problem `p3`; it should contain a list of words to accept/reject by the student submission (a Turing machine), and the grader will run the student submission on each word for no more than 10000 steps. The contents of the file might be:
 
-> `## ACCEPT ##`<br>
-> ` `<br>
-> `012`<br>
-> `001122`<br>
-> `## REJECT ##`<br>
-> `01`<br>
-> `00112`<br>
-> `01122`
+> ```text
+> ## ACCEPT ##
+>
+> 012
+> 001122
+> ## REJECT ##
+> 01
+> 00112
+> 01122
+> ```
 
 (Note that the blank line after `## ACCEPT ##` means that the empty string should be accepted.)
 
