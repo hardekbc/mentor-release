@@ -1,4 +1,4 @@
-# To Test The Autograder
+# To Test the Autograder
 
 1. Create the autograder using **test-solutions/*** as the contents of **solutions/**.
 
@@ -18,7 +18,7 @@
 
    - test1 should come back graded as correct (because submitting again during the cooldown period shouldn't reset the cooldown).
 
-# Tip For Debugging The Grader Script
+# Tip For Debugging the Grader Script
 
 If you're getting a lot of Python script errors, running it through Gradescope every time can be a huge pain. Instead, you can copy 'grader.py' to this directory (rename it 'test-grader.py' to avoid confusion) and make the following changes:
 
@@ -30,7 +30,7 @@ If you're getting a lot of Python script errors, running it through Gradescope e
 
 Now run ./test-grader.py and debug until it works without script errors, then import those bug fixes to the actual 'grader.py' (deleting 'test-grader.py' to avoid future confusion) and go back to testing on Gradescope.
 
-# Expected Results for Steps 1--4
+# Expected Results For Steps 1--4
 
 These tests should be graded as correct:
 
