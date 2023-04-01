@@ -1,4 +1,3 @@
 #!/bin/bash
 MENTOR_PATH="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MENTOR_PATH/lib/mentor/ && \
-$MENTOR_PATH/bin/mentor-cli "$@"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MENTOR_PATH/lib/mentor/ && $MENTOR_PATH/bin/mentor-cli "$@"
