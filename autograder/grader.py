@@ -125,6 +125,15 @@ solution_files = [file for file in listdir(solution_dir) if
 # the submission metadata from 'submission_metadata_file'.
 metadata = json.loads(open(submission_metadata_file).read())
 
+# for submitted files, convert dos text format to unix format.
+for file in submitted_files:
+    fullname = student_submission_dir + file
+    with open(fullname, 'rb') as f:
+        content = f.read()
+        content = content.replace(b'\r\n', b'\n')
+    with open(fullname, 'wb') as f:
+        f.write(content)
+
 # the metadata for previous submissions can have submissions in an arbitrary
 # order (i think), and some of those submission may have results for a problem
 # that wasn't actually graded (e.g., it automatically got a 0 because the
