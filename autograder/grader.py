@@ -41,16 +41,19 @@ student_submission_dir = "/autograder/submission/"
 # there should be one file per problem, named using one of the following formats
 # (where <problem-id> should not contain any '.'):
 #
-# 1. <problem-id>.<point-value>.{dfa, nfa, re}
-# 2. <problem-id>.<point-value>.<num-words>.{cfg, pda}
-# 3. <problem-id>.{cfg, pda}.wordlist
-# 4. <problem-id>.<point-value>.<max-steps>.{tm, htm}.wordlist
+# 1. <problem-id>.<point-value>.<expected format>.{dfa, nfa, re}
+# 2. <problem-id>.<point-value>.<num-words>.<expected format>.{cfg, pda}
+# 3. <problem-id>.wordlist
+# 4. <problem-id>.<point-value>.<max-steps>.<expected format>.wordlist
 #
 # within a language class the type of solution does not need to match the type
 # of the student submission; that is, for regular languages the solution can be
-# any of {dfa, nfa, re}, for context-free languages the solution can be any of
-# {cfg, pda}, and for unrestricted languages the solution can be any of {tm,
-# htm}, regardless of what the students are supposed to turn in.
+# any of {dfa, nfa, re} and for context-free languages the solution can be any of
+# {cfg, pda}, regardless of what the students are supposed to turn in
+# (unrestricted languages are handled solely via wordlists, so there is no solution
+# formalism). the <expected format> is what the student submission is supposed to be,
+# independently of what format the solution uses (but must be in the same language
+# class). any submission in a different format is rejected.
 #
 # all formats except format (3)---to be discussed below---contain <point-value>
 # (assumed to be an integer) that sets the point value for <problem-id>.
@@ -114,13 +117,34 @@ mentor = "/autograder/source/mentor"
 # problem), in minutes.
 cooldown = 30
 
+
+# return the language class of the give file type: regular, context-free, or
+# unrestricted.
+def LanguageClass(file_type: str) -> str:
+    regular = ["dfa", "nfa", "re"]
+    context_free = ["cfg", "pda"]
+    unrestricted = ["tm", "htm"]
+    if file_type in regular:
+        return "regular"
+    if file_type in context_free:
+        return "context-free"
+    if file_type in unrestricted:
+        return "unrestricted"
+    return "unknown"
+
+
 # the submitted files in 'student_submission_dir'.
-submitted_files = [file for file in listdir(student_submission_dir) if
-                   isfile(join(student_submission_dir, file))]
+submitted_files = [
+    file
+    for file in listdir(student_submission_dir)
+    if isfile(join(student_submission_dir, file))
+    and LanguageClass(file.split(".").pop()) != "unknown"
+]
 
 # the solutions present in 'solution_dir'.
-solution_files = [file for file in listdir(solution_dir) if
-                  isfile(join(solution_dir, file))]
+solution_files = [
+    file for file in listdir(solution_dir) if isfile(join(solution_dir, file))
+]
 
 # the submission metadata from 'submission_metadata_file'.
 metadata = json.loads(open(submission_metadata_file).read())
@@ -128,10 +152,10 @@ metadata = json.loads(open(submission_metadata_file).read())
 # for submitted files, convert dos text format to unix format.
 for file in submitted_files:
     fullname = student_submission_dir + file
-    with open(fullname, 'rb') as f:
+    with open(fullname, "rb") as f:
         content = f.read()
-        content = content.replace(b'\r\n', b'\n')
-    with open(fullname, 'wb') as f:
+        content = content.replace(b"\r\n", b"\n")
+    with open(fullname, "wb") as f:
         f.write(content)
 
 # the metadata for previous submissions can have submissions in an arbitrary
@@ -165,10 +189,11 @@ previous_info: Dict[str, Dict[str, int]] = {}
 # }
 grades = {}
 
+
 # convert a string containing time information into a datetime object. the
 # expected format is as given in the second argument to strptime.
 def GetTimeFromString(time_string) -> datetime:
-    return datetime.strptime(time_string.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+    return datetime.strptime(time_string.split(".")[0], "%Y-%m-%dT%H:%M:%S")
 
 
 # return the solution filename matching the given problem id. if there is no
@@ -177,25 +202,16 @@ def GetTimeFromString(time_string) -> datetime:
 # other than that case, if there are multiple matching files returns "multiple
 # matching solutions".
 def FindMatchingSolutionFile(problem_id: str) -> str:
-    solutions = [soln for soln in solution_files if soln.split('.')[0] == problem_id]
-    if len(solutions) == 0: return "no matching solution"
-    if len(solutions) == 1: return solutions[0]
+    solutions = [soln for soln in solution_files if soln.split(".")[0] == problem_id]
+    if len(solutions) == 0:
+        return "no matching solution"
+    if len(solutions) == 1:
+        return solutions[0]
     if len(solutions) == 2:
-        if "wordlist" in solutions[0]: return solutions[1]
+        if "wordlist" in solutions[0]:
+            return solutions[1]
         return solutions[0]
     return "multiple matching solutions"
-
-
-# return the language class of the give file type: regular, context-free, or
-# unrestricted.
-def LanguageClass(file_type: str) -> str:
-    regular = ["dfa", "nfa", "re"]
-    context_free = ["cfg", "pda"]
-    unrestricted = ["tm", "htm"]
-    if file_type in regular: return "regular"
-    if file_type in context_free: return "context-free"
-    if file_type in unrestricted: return "unrestricted"
-    return "unknown"
 
 
 # parse the name of the problem file to retrieve its embedded information.
@@ -209,10 +225,14 @@ def LanguageClass(file_type: str) -> str:
 # returns an empty dictionary {} if the filename was not in the correct format
 # or it couldn't read the file.
 def GetProblemInfo(problem_file: str):
-    pieces = problem_file.split('.')
-    if len(pieces) != 2: return {}
-    return {'file': student_submission_dir + problem_file,
-            'file-type': pieces[1], 'id': pieces[0]}
+    pieces = problem_file.split(".")
+    if len(pieces) != 2:
+        return {}
+    return {
+        "file": student_submission_dir + problem_file,
+        "file-type": pieces[1],
+        "id": pieces[0],
+    }
 
 
 # parse the name of the solution file to retrieve its embedded information and
@@ -221,18 +241,21 @@ def GetProblemInfo(problem_file: str):
 #
 # { 'file': "</path/to/file>"
 #   'file-type': "<{dfa, nfa, re}>",
+#   'expected-type': "<{dfa, nfa, re}>"
 #   'point-value': <int>,
 # }
 #
 # { 'file': "</path/to/file>"
 #   'file-type': "<{cfg, pda}>",
+#   'expected-type': "<{cfg, pda}>",
 #   'point-value': <int>,
 #   'num-words': <int>,
 #   'wordlist': "<list of words>" // present only if solution is a wordlist.
 # }
 #
 # { 'file': "</path/to/file>"
-#   'file-type': "<{tm, htm}>",
+#   'file-type': "<{tm, htm}>", // same as expected-type.
+#   'expected-type': "<{tm, htm}>",
 #   'point-value': <int>,
 #   'max-steps': <int>,
 #   'accept': <list of inputs to accept>,
@@ -242,57 +265,85 @@ def GetProblemInfo(problem_file: str):
 # returns an empty dictionary {} if the filename was not in the correct format
 # or it couldn't read the file.
 def GetSolutionInfo(solution_file: str):
-    pieces = solution_file.split('.')
+    pieces = solution_file.split(".")
 
-    # <problem-id>.<point-value>.{dfa, nfa, re}
-    if len(pieces) == 3 and LanguageClass(pieces[2]) == "regular":
-        if not pieces[1].isdigit(): return {}
-        return {'file': solution_dir + solution_file, 'file-type': pieces[2],
-                'point-value': int(pieces[1])}
+    # <problem-id>.<point-value>.<expected format>.{dfa, nfa, re}
+    if len(pieces) == 4 and LanguageClass(pieces[3]) == "regular":
+        if not pieces[1].isdigit():
+            return {}
+        return {
+            "file": solution_dir + solution_file,
+            "file-type": pieces[3],
+            "expected-type": pieces[2],
+            "point-value": int(pieces[1]),
+        }
 
-    # <problem-id>.<point-value>.<num-words>.{cfg, pda}
-    if len(pieces) == 4 and LanguageClass(pieces[3]) == "context-free":
-        if not pieces[1].isdigit() or not pieces[2].isdigit(): return {}
-        info = {'file': solution_dir + solution_file, 'file-type': pieces[3],
-                'point-value': int(pieces[1]), 'num-words': int(pieces[2])}
+    # <problem-id>.<point-value>.<num-words>.<expected format>.{cfg, pda}
+    if len(pieces) == 5 and LanguageClass(pieces[4]) == "context-free":
+        if not pieces[1].isdigit() or not pieces[2].isdigit():
+            return {}
+        info = {
+            "file": solution_dir + solution_file,
+            "file-type": pieces[4],
+            "expected-type": pieces[3],
+            "point-value": int(pieces[1]),
+            "num-words": int(pieces[2]),
+        }
 
         # see if there is a wordlist available (if there is more than one, just
         # ignore them all). if the wordlist has a different number of words than
         # specified by <num-words>, that overrides the specified value.
-        files = [f for f in solution_files if f.split('.')[0] == pieces[0]
-                    and f.endswith(".wordlist")]
+        files = [
+            f
+            for f in solution_files
+            if f.split(".")[0] == pieces[0] and f.endswith(".wordlist")
+        ]
         if len(files) == 1:
-            with open(solution_dir + files[0], 'r') as handle:
+            with open(solution_dir + files[0], "r") as handle:
                 words = handle.read()
-            info['wordlist'] = words.splitlines()
-            info['num-words'] = len(info['wordlist'])
+            info["wordlist"] = words.splitlines()
+            info["num-words"] = len(info["wordlist"])
 
         return info
 
-    # <problem-id>.<point-value>.<max_steps>.{tm, htm}.wordlist
+    # <problem-id>.<point-value>.<max_steps>.<expected format>.wordlist
     if len(pieces) == 5 and LanguageClass(pieces[3]) == "unrestricted":
-        if not pieces[1].isdigit() or not pieces[2].isdigit() or \
-           pieces[4] != "wordlist": return {}
+        if (
+            not pieces[1].isdigit()
+            or not pieces[2].isdigit()
+            or pieces[4] != "wordlist"
+        ):
+            return {}
 
         # get wordlist from file.
         words = ""
-        with open(solution_dir + solution_file, 'r') as handle:
+        with open(solution_dir + solution_file, "r") as handle:
             words = handle.read()
         wordlist = words.splitlines()
 
         # sanity checks.
-        if not wordlist or wordlist[0] != "## ACCEPT ##" or \
-           "## REJECT ##" not in wordlist: return {}
+        if (
+            not wordlist
+            or wordlist[0] != "## ACCEPT ##"
+            or "## REJECT ##" not in wordlist
+        ):
+            return {}
         wordlist = wordlist[1:]
 
         # split into separate accept and reject lists.
         reject_hdr_idx = wordlist.index("## REJECT ##")
         accept = wordlist[:reject_hdr_idx]
-        reject = wordlist[reject_hdr_idx+1:]
+        reject = wordlist[reject_hdr_idx + 1 :]
 
-        return {'file': solution_dir + solution_file, 'file-type': pieces[3],
-                'point-value': int(pieces[1]), 'max-steps': int(pieces[2]),
-                'accept': accept, 'reject': reject}
+        return {
+            "file": solution_dir + solution_file,
+            "file-type": pieces[3],
+            "expected-type": pieces[3],
+            "point-value": int(pieces[1]),
+            "max-steps": int(pieces[2]),
+            "accept": accept,
+            "reject": reject,
+        }
 
     # no pattern matched.
     return {}
@@ -302,7 +353,7 @@ def GetSolutionInfo(solution_file: str):
 def StoreGrade(problem_id: str, score: int, msg: str, graded: bool) -> None:
     # verify that this problem id hasn't already had a grade stored.
     assert not problem_id in grades
-    grades[problem_id] = {'score': score, 'output': msg, 'graded': graded}
+    grades[problem_id] = {"score": score, "output": msg, "graded": graded}
 
 
 # run the given mentor command. returns a pair s.t. the boolean indicates
@@ -310,11 +361,15 @@ def StoreGrade(problem_id: str, score: int, msg: str, graded: bool) -> None:
 # contains the output of the command. if the command did not terminate normally,
 # it stores an appropriate grade for the problem id.
 def RunMentor(problem_id: str, mentor_cmd: List[str]) -> Tuple[bool, str]:
-    proc = subprocess.run(mentor_cmd, stdout = subprocess.PIPE, \
-                          stderr = subprocess.PIPE)
-    output = (proc.stdout + b'\n' + proc.stderr).decode('utf-8')
-    if proc.returncode != 0: # error
-        StoreGrade(problem_id, 0, f"Mentor terminated abnormally on command '{mentor_cmd}':\n{output}", False)
+    proc = subprocess.run(mentor_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = (proc.stdout + b"\n" + proc.stderr).decode("utf-8")
+    if proc.returncode != 0:  # error
+        StoreGrade(
+            problem_id,
+            0,
+            f"Mentor terminated abnormally on command '{mentor_cmd}':\n{output}",
+            False,
+        )
         return (False, output)
     else:
         return (True, output)
@@ -325,18 +380,29 @@ def RunMentor(problem_id: str, mentor_cmd: List[str]) -> Tuple[bool, str]:
 # GetProblemInfo() and solution_info comes from GetSolutionInfo(), and hence are
 # in the expected formats.
 def GradeRegular(problem_info, solution_info) -> None:
-    assert LanguageClass(problem_info['file-type']) == "regular" and \
-        LanguageClass(solution_info['file-type']) == "regular"
+    assert (
+        LanguageClass(problem_info["file-type"]) == "regular"
+        and LanguageClass(solution_info["file-type"]) == "regular"
+    )
 
-    problem_id = problem_info['id']
-    ok, output = RunMentor(problem_id, [mentor, problem_info['file'], "compare",
-                                        solution_info['file']])
+    if problem_info["file-type"] != solution_info["expected-type"]:
+        StoreGrade(problem_info["id"], 0, "Wrong format\n", True)
+        return
+
+    problem_id = problem_info["id"]
+    ok, output = RunMentor(
+        problem_id, [mentor, problem_info["file"], "compare", solution_info["file"]]
+    )
 
     if ok and "The languages are equivalent" in output:
-        StoreGrade(problem_info['id'], solution_info['point-value'],
-                   f"Correct (points = {solution_info['point-value']})", True)
+        StoreGrade(
+            problem_info["id"],
+            solution_info["point-value"],
+            f"Correct (points = {solution_info['point-value']})",
+            True,
+        )
     elif ok:
-        StoreGrade(problem_info['id'], 0, "Incorrect (points = 0):\n" + output, True)
+        StoreGrade(problem_info["id"], 0, "Incorrect (points = 0):\n" + output, True)
 
 
 # grade a problem involving context-free languages. fills in an appropriate
@@ -344,24 +410,40 @@ def GradeRegular(problem_info, solution_info) -> None:
 # GetProblemInfo() and solution_info comes from GetSolutionInfo(), and hence are
 # in the expected formats.
 def GradeContextFree(problem_info, solution_info) -> None:
-    assert LanguageClass(problem_info['file-type']) == "context-free" and \
-        LanguageClass(solution_info['file-type']) == "context-free"
+    assert (
+        LanguageClass(problem_info["file-type"]) == "context-free"
+        and LanguageClass(solution_info["file-type"]) == "context-free"
+    )
+
+    if problem_info["file-type"] != solution_info["expected-type"]:
+        StoreGrade(problem_info["id"], 0, "Wrong format\n", True)
+        return
 
     # get student wordlist.
-    problem_id = problem_info['id']
-    ok, output = RunMentor(problem_id, [mentor, problem_info['file'], "gen_words",
-                                        str(solution_info['num-words'])])
-    if not ok: return
+    problem_id = problem_info["id"]
+    ok, output = RunMentor(
+        problem_id,
+        [mentor, problem_info["file"], "gen_words", str(solution_info["num-words"])],
+    )
+    if not ok:
+        return
     student_wordlist = output.splitlines()
 
     # get solution wordlist.
-    if 'wordlist' in solution_info:
-        solution_wordlist = solution_info['wordlist']
+    if "wordlist" in solution_info:
+        solution_wordlist = solution_info["wordlist"]
     else:
         ok, output = RunMentor(
-            problem_id, [mentor, solution_info['file'], "gen_words",
-                         str(solution_info['num-words'])])
-        if not ok: return
+            problem_id,
+            [
+                mentor,
+                solution_info["file"],
+                "gen_words",
+                str(solution_info["num-words"]),
+            ],
+        )
+        if not ok:
+            return
         solution_wordlist = output.splitlines()
 
     # compute differences between student and solution. false positives are
@@ -372,8 +454,12 @@ def GradeContextFree(problem_info, solution_info) -> None:
 
     # student solution is exactly correct.
     if len(false_positives) == 0 and len(false_negatives) == 0:
-        StoreGrade(problem_info['id'], solution_info['point-value'],
-                   f"Correct (points = {solution_info['point-value']})", True)
+        StoreGrade(
+            problem_info["id"],
+            solution_info["point-value"],
+            f"Correct (points = {solution_info['point-value']})",
+            True,
+        )
         return
 
     # because we're only checking up to N words we have to account for some
@@ -391,32 +477,36 @@ def GradeContextFree(problem_info, solution_info) -> None:
     # accepts the word; if so then it isn't really a false positive.
     real_false_positive = None
     for word in false_positives:
-        ok, output = RunMentor(problem_id, [mentor, solution_info['file'],
-                                            "accept", word])
-        if not ok: return
+        ok, output = RunMentor(
+            problem_id, [mentor, solution_info["file"], "accept", word]
+        )
+        if not ok:
+            return
         if "Input is not accepted" in output:
             real_false_positive = word if word != "" else "ε"
-            break;
+            break
 
     # find the first false negative that's really a false negative (if any). we
     # verify this by calling mentor again and asking whether the student
     # submission accepts the word; if so then it isn't really a false negative.
     real_false_negative = None
     for word in false_negatives:
-        ok, output = RunMentor(problem_id, [mentor, problem_info['file'],
-                                            "accept", word])
-        if not ok: return
+        ok, output = RunMentor(
+            problem_id, [mentor, problem_info["file"], "accept", word]
+        )
+        if not ok:
+            return
         if "Input is not accepted" in output:
             real_false_negative = word if word != "" else "ε"
-            break;
+            break
 
     # construct the feedback to the student and store their grade.
-    msg = "Incorrect (points = 0):\n";
+    msg = "Incorrect (points = 0):\n"
     if real_false_negative != None:
         msg += f"The word {real_false_negative} should be accepted.\n"
     if real_false_positive != None:
         msg += f"The word {real_false_positive} should be rejected.\n"
-    StoreGrade(problem_info['id'], 0, msg, True)
+    StoreGrade(problem_info["id"], 0, msg, True)
 
 
 # grade a problem involving unrestricted languages. fills in an appropriate
@@ -424,10 +514,16 @@ def GradeContextFree(problem_info, solution_info) -> None:
 # GetProblemInfo() and solution_info comes from GetSolutionInfo(), and hence are
 # in the expected formats.
 def GradeUnrestricted(problem_info, solution_info) -> None:
-    assert LanguageClass(problem_info['file-type']) == "unrestricted" and \
-        LanguageClass(solution_info['file-type']) == "unrestricted"
+    assert (
+        LanguageClass(problem_info["file-type"]) == "unrestricted"
+        and LanguageClass(solution_info["expected-type"]) == "unrestricted"
+    )
 
-    problem_id = problem_info['id']
+    if problem_info["file-type"] != solution_info["expected-type"]:
+        StoreGrade(problem_info["id"], 0, "Wrong format\n", True)
+        return
+
+    problem_id = problem_info["id"]
 
     # we have to account for timeouts too; we'll use the first timeout
     # wncountered as the student feedback. to avoid having too many timeouts
@@ -439,42 +535,78 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
 
     # run accept wordlist on student submission, stopping at the first mistake.
     incorrect_rejection = None
-    for word in solution_info['accept']:
-        ok, output = RunMentor(problem_id,
-                               [mentor, problem_info['file'], "accept", word,
-                                str(solution_info['max-steps'])])
-        if not ok: return
+    for word in solution_info["accept"]:
+        ok, output = RunMentor(
+            problem_id,
+            [
+                mentor,
+                problem_info["file"],
+                "accept",
+                word,
+                str(solution_info["max-steps"]),
+            ],
+        )
+        if not ok:
+            return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
             if num_timeouts > max_timeouts:
-                StoreGrade(problem_info['id'], 0, f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}", True)
+                StoreGrade(
+                    problem_info["id"],
+                    0,
+                    f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}",
+                    True,
+                )
                 return
-            if timedout_word == None: timedout_word = word if word != "" else "ε"
+            if timedout_word == None:
+                timedout_word = word if word != "" else "ε"
         elif "Input is not accepted" in output:
             incorrect_rejection = word if word != "" else "ε"
-            break;
+            break
 
     # run reject worklist on student submission, stopping at the first mistake.
     incorrect_acceptance = None
-    for word in solution_info['reject']:
-        ok, output = RunMentor(problem_id,
-                               [mentor, problem_info['file'], "accept", word,
-                                str(solution_info['max-steps'])])
-        if not ok: return
+    for word in solution_info["reject"]:
+        ok, output = RunMentor(
+            problem_id,
+            [
+                mentor,
+                problem_info["file"],
+                "accept",
+                word,
+                str(solution_info["max-steps"]),
+            ],
+        )
+        if not ok:
+            return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
             if num_timeouts > max_timeouts:
-                StoreGrade(problem_info['id'], 0, f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}", True)
+                StoreGrade(
+                    problem_info["id"],
+                    0,
+                    f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}",
+                    True,
+                )
                 return
-            if timedout_word == None: timedout_word = word if word != "" else "ε"
+            if timedout_word == None:
+                timedout_word = word if word != "" else "ε"
         elif "Input is accepted" in output:
             incorrect_acceptance = word if word != "" else "ε"
-            break;
+            break
 
     # compute feedback and grade.
-    if incorrect_rejection == None and incorrect_acceptance == None and timedout_word == None:
-        StoreGrade(problem_info['id'], solution_info['point-value'],
-                   f"Correct (points = {solution_info['point-value']})", True)
+    if (
+        incorrect_rejection == None
+        and incorrect_acceptance == None
+        and timedout_word == None
+    ):
+        StoreGrade(
+            problem_info["id"],
+            solution_info["point-value"],
+            f"Correct (points = {solution_info['point-value']})",
+            True,
+        )
     else:
         msg = "Incorrect (points = 0):\n"
         if incorrect_rejection != None:
@@ -483,29 +615,35 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             msg += f"The word {incorrect_acceptance} should be rejected.\n"
         if timedout_word != None:
             msg += f"The word {timedout_word} exceeds the maximum number of allowed steps.\n"
-        StoreGrade(problem_info['id'], 0, msg, True)
+        StoreGrade(problem_info["id"], 0, msg, True)
 
 
 # get the current submission time.
-now = GetTimeFromString(metadata['created_at'])
+now = GetTimeFromString(metadata["created_at"])
 
 # fill in 'previous_info' with the information about previous submissions.
-for submission in metadata['previous_submissions']:
+for submission in metadata["previous_submissions"]:
     # elapsed time since previous submission, in minutes.
     elapsed_time = int(
-        (now - GetTimeFromString(submission['submission_time'])).total_seconds() // 60)
+        (now - GetTimeFromString(submission["submission_time"])).total_seconds() // 60
+    )
 
-    if not 'tests' in submission['results']: continue
+    if not "tests" in submission["results"]:
+        continue
 
-    for problem in submission['results']['tests']:
-        problem_id = problem['name']
-        if problem['extra_data']['graded'] != True:
+    for problem in submission["results"]["tests"]:
+        problem_id = problem["name"]
+        if problem["extra_data"]["graded"] != True:
             continue
-        if problem_id in previous_info and \
-           previous_info[problem_id]['elapsed-time'] < elapsed_time:
+        if (
+            problem_id in previous_info
+            and previous_info[problem_id]["elapsed-time"] < elapsed_time
+        ):
             continue
-        previous_info[problem_id] = {'elapsed-time': elapsed_time,
-                                     'previous-score': int(problem['score'])}
+        previous_info[problem_id] = {
+            "elapsed-time": elapsed_time,
+            "previous-score": int(problem["score"]),
+        }
 
 # the main computation loop: iterate through the submitted problems and grade
 # them as appropriate.
@@ -515,27 +653,40 @@ for problem_file in submitted_files:
         StoreGrade(problem_file, 0, f"Invalid submitted file: {problem_file}", False)
         continue
 
-    problem_id = problem_info['id']
+    problem_id = problem_info["id"]
 
     # if this problem is in cooldown, re-use the previous score instead of
     # grading it again.
-    if problem_id in previous_info and \
-       previous_info[problem_id]['elapsed-time'] <= cooldown:
-        time_remaining = cooldown - previous_info[problem_id]['elapsed-time']
-        StoreGrade(problem_id, previous_info[problem_id]['previous-score'], f"Cooldown still in effect for this problem; {time_remaining} minutes remaining.", False)
+    if (
+        problem_id in previous_info
+        and previous_info[problem_id]["elapsed-time"] <= cooldown
+    ):
+        time_remaining = cooldown - previous_info[problem_id]["elapsed-time"]
+        StoreGrade(
+            problem_id,
+            previous_info[problem_id]["previous-score"],
+            f"Cooldown still in effect for this problem; {time_remaining} minutes remaining.",
+            False,
+        )
         continue
 
     # find the solution file for this problem (handling any errors).
     solution_file = FindMatchingSolutionFile(problem_id)
     if solution_file == "no matching solution":
-        StoreGrade(problem_id, 0, "There is no matching solution for this problem", False)
+        StoreGrade(
+            problem_id, 0, "There is no matching solution for this problem", False
+        )
         continue
     if solution_file == "multiple matching solutions":
-        StoreGrade(problem_id, 0, "There are conflicting solutions for this problem", False)
+        StoreGrade(
+            problem_id, 0, "There are conflicting solutions for this problem", False
+        )
         continue
 
     solution_info = GetSolutionInfo(solution_file)
-    if not solution_info:
+    if (not solution_info) or LanguageClass(
+        solution_info["file-type"]
+    ) != LanguageClass(solution_info["expected-type"]):
         StoreGrade(problem_id, 0, f"Invalid solution file: {solution_file}", False)
         continue
 
@@ -550,10 +701,15 @@ for problem_file in submitted_files:
 
     # verify that the submitted problem and the solution are compatible, i.e.,
     # belong to the same language class.
-    problem_type = problem_info['file-type']
-    solution_type = solution_info['file-type']
+    problem_type = problem_info["file-type"]
+    solution_type = solution_info["file-type"]
     if LanguageClass(problem_type) != LanguageClass(solution_type):
-        StoreGrade(problem_id, 0, f"The submitted problem is type {problem_type}, but the solution is type {solution_type}", False)
+        StoreGrade(
+            problem_id,
+            0,
+            f"The submitted problem is type {problem_type}, but the solution is type {solution_type}",
+            False,
+        )
         continue
 
     # grade the problem based on what type it is.
@@ -561,30 +717,34 @@ for problem_file in submitted_files:
         GradeRegular(problem_info, solution_info)
     elif LanguageClass(problem_type) == "context-free":
         GradeContextFree(problem_info, solution_info)
-    else: # must be unrestricted.
+    else:  # must be unrestricted.
         GradeUnrestricted(problem_info, solution_info)
 
 # if there are any problems that were previously graded but not submitted this
 # time, give them their previous scores.
 for problem_id in previous_info:
     if not problem_id in grades:
-        StoreGrade(problem_id, previous_info[problem_id]['previous-score'],
-                   f"Problem not submitted, using previous score: {previous_info[problem_id]['previous-score']}", False)
+        StoreGrade(
+            problem_id,
+            previous_info[problem_id]["previous-score"],
+            f"Problem not submitted, using previous score: {previous_info[problem_id]['previous-score']}",
+            False,
+        )
 
 # the datastructure to be written out to 'results_file'.
-results: Dict[str, List[Dict[str, Any]]] = {
-  'tests': []
-}
+results: Dict[str, List[Dict[str, Any]]] = {"tests": []}
 
 # fill in 'results' from 'grades'.
 for problem_id in grades:
-    results['tests'].append(
-        {'name': problem_id,
-         'score': grades[problem_id]['score'],
-         'output': grades[problem_id]['output'],
-         'extra_data': { 'graded': grades[problem_id]['graded'] }
-        })
+    results["tests"].append(
+        {
+            "name": problem_id,
+            "score": grades[problem_id]["score"],
+            "output": grades[problem_id]["output"],
+            "extra_data": {"graded": grades[problem_id]["graded"]},
+        }
+    )
 
 # write out the final results.
-with open(results_file, 'w') as out:
+with open(results_file, "w") as out:
     out.write(json.dumps(results))
