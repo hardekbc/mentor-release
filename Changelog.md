@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.3] - April 2023
+
+### Added
+
+### Changed
+- Convert DOS format to Unix format for student submissions.
+
+### Removed
+
 ## [1.0.2] - March 2023
 
 ### Added
