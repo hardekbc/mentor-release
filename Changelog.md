@@ -5,7 +5,10 @@
 ### Added
 
 ### Changed
-- Convert DOS format to Unix format for student submissions.
+- Autograder fixes:
+    - Convert DOS format to Unix format for student submissions.
+    - Ignore non-Mentor submitted files.
+    - Specify expected format of student submissions
 
 ### Removed
 
