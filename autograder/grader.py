@@ -301,7 +301,7 @@ def GetSolutionInfo(solution_file: str):
         if len(files) == 1:
             with open(solution_dir + files[0], "r") as handle:
                 words = handle.read()
-            info["wordlist"] = words.splitlines()
+            info["wordlist"] = words.strip().splitlines()
             info["num-words"] = len(info["wordlist"])
 
         return info
@@ -319,7 +319,7 @@ def GetSolutionInfo(solution_file: str):
         words = ""
         with open(solution_dir + solution_file, "r") as handle:
             words = handle.read()
-        wordlist = words.splitlines()
+        wordlist = words.strip().splitlines()
 
         # sanity checks.
         if (
@@ -427,7 +427,7 @@ def GradeContextFree(problem_info, solution_info) -> None:
     )
     if not ok:
         return
-    student_wordlist = output.splitlines()
+    student_wordlist = output.strip().splitlines()
 
     # get solution wordlist.
     if "wordlist" in solution_info:
@@ -444,7 +444,7 @@ def GradeContextFree(problem_info, solution_info) -> None:
         )
         if not ok:
             return
-        solution_wordlist = output.splitlines()
+        solution_wordlist = output.strip().splitlines()
 
     # compute differences between student and solution. false positives are
     # words in the student list that aren't in the solution; false negatives are
