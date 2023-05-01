@@ -1,1 +1,1 @@
-Please the assignment solutions in this directory with the appropriate naming convention.
+Place the assignment solutions in this directory with the appropriate naming convention.
