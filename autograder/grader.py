@@ -426,6 +426,7 @@ def GradeContextFree(problem_info, solution_info) -> None:
         [mentor, problem_info["file"], "gen_words", str(solution_info["num-words"])],
     )
     if not ok:
+        StoreGrade(problem_info["id"], 0, f"student error: {output}", False)
         return
     student_wordlist = output.strip().splitlines()
 
@@ -443,6 +444,7 @@ def GradeContextFree(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
+            StoreGrade(problem_info["id"], 0, f"solution error: {output}", False)
             return
         solution_wordlist = output.strip().splitlines()
 
@@ -462,6 +464,16 @@ def GradeContextFree(problem_info, solution_info) -> None:
         )
         return
 
+    # it should be impossible for one to be empty and the other not.
+    if len(false_positives) == 0 or len(false_negatives) == 0:
+        StoreGrade(
+            problem_info["id"],
+            0,
+            "length assumption incorrect; contact instructor",
+            True,
+        )
+        return
+
     # because we're only checking up to N words we have to account for some
     # potential weirdness. if the student submission generated incorrect words
     # it may have pushed some correct words outside the N-limit and hence it
@@ -469,36 +481,43 @@ def GradeContextFree(problem_info, solution_info) -> None:
     # student submission didn't generate some correct words it may have pulled
     # some other correct words inside the N-limit and hence it looks like they
     # are false positives but really aren't. we're guaranteed that at least one
-    # word in one of false_positives/false_negatives is incorrect, but we have
-    # to search through them all to see which ones are really incorrect.
+    # word in one of false_positives/false_negatives is incorrect.
+    #
+    # sometimes there can be thousands of "false false positives/negatives",
+    # which can take prohibitively long to run through mentor. we are guaranteed
+    # that one of the two lists doesn't have any false entries, so we'll check
+    # the first entry of both (thus ensuring we have at least one word for
+    # feedback) and just use those results instead of looking through all the
+    # potential false positives/negatives.
 
-    # find the first false positive that's really a false positive (if any). we
-    # verify this by calling mentor again and asking whether the solution
-    # accepts the word; if so then it isn't really a false positive.
     real_false_positive = None
-    for word in false_positives:
-        ok, output = RunMentor(
-            problem_id, [mentor, solution_info["file"], "accept", word]
-        )
-        if not ok:
-            return
-        if "Input is not accepted" in output:
-            real_false_positive = word if word != "" else "ε"
-            break
-
-    # find the first false negative that's really a false negative (if any). we
-    # verify this by calling mentor again and asking whether the student
-    # submission accepts the word; if so then it isn't really a false negative.
     real_false_negative = None
-    for word in false_negatives:
-        ok, output = RunMentor(
-            problem_id, [mentor, problem_info["file"], "accept", word]
+
+    word = false_positives[0]
+    ok, output = RunMentor(problem_id, [mentor, solution_info["file"], "accept", word])
+    if not ok:
+        StoreGrade(problem_info["id"], 0, f"error: {output}", True)
+        return
+    if "Input is not accepted" in output:
+        real_false_positive = word if word != "" else "ε"
+
+    word = false_negatives[0]
+    ok, output = RunMentor(problem_id, [mentor, problem_info["file"], "accept", word])
+    if not ok:
+        StoreGrade(problem_info["id"], 0, f"error: {output}", True)
+        return
+    if "Input is not accepted" in output:
+        real_false_negative = word if word != "" else "ε"
+
+    # it should be impossible not to have found at least one word.
+    if real_false_negative == None and real_false_positive == None:
+        StoreGrade(
+            problem_info["id"],
+            0,
+            "existence assumption incorrect; contact instructor",
+            True,
         )
-        if not ok:
-            return
-        if "Input is not accepted" in output:
-            real_false_negative = word if word != "" else "ε"
-            break
+        return
 
     # construct the feedback to the student and store their grade.
     msg = "Incorrect (points = 0):\n"
@@ -547,6 +566,7 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
+            StoreGrade(problem_info["id"], 0, f"student error: {output}", True)
             return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
@@ -578,6 +598,7 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
+            StoreGrade(problem_info["id"], 0, f"solution error: {output}", True)
             return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
