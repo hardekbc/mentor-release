@@ -416,7 +416,7 @@ def GradeContextFree(problem_info, solution_info) -> None:
     )
 
     if problem_info["file-type"] != solution_info["expected-type"]:
-        StoreGrade(problem_info["id"], 0, "Wrong format\n", True)
+        StoreGrade(problem_info["id"], 0, "Wrong format\n", False)
         return
 
     # get student wordlist.
@@ -426,7 +426,6 @@ def GradeContextFree(problem_info, solution_info) -> None:
         [mentor, problem_info["file"], "gen_words", str(solution_info["num-words"])],
     )
     if not ok:
-        StoreGrade(problem_info["id"], 0, f"student error: {output}", False)
         return
     student_wordlist = output.strip().splitlines()
 
@@ -444,7 +443,6 @@ def GradeContextFree(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
-            StoreGrade(problem_info["id"], 0, f"solution error: {output}", False)
             return
         solution_wordlist = output.strip().splitlines()
 
@@ -496,7 +494,6 @@ def GradeContextFree(problem_info, solution_info) -> None:
     word = false_positives[0]
     ok, output = RunMentor(problem_id, [mentor, solution_info["file"], "accept", word])
     if not ok:
-        StoreGrade(problem_info["id"], 0, f"error: {output}", True)
         return
     if "Input is not accepted" in output:
         real_false_positive = word if word != "" else "ε"
@@ -504,7 +501,6 @@ def GradeContextFree(problem_info, solution_info) -> None:
     word = false_negatives[0]
     ok, output = RunMentor(problem_id, [mentor, problem_info["file"], "accept", word])
     if not ok:
-        StoreGrade(problem_info["id"], 0, f"error: {output}", True)
         return
     if "Input is not accepted" in output:
         real_false_negative = word if word != "" else "ε"
@@ -566,7 +562,6 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
-            StoreGrade(problem_info["id"], 0, f"student error: {output}", True)
             return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
@@ -598,7 +593,6 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             ],
         )
         if not ok:
-            StoreGrade(problem_info["id"], 0, f"solution error: {output}", True)
             return
         if "Computation timed out" in output:
             num_timeouts = num_timeouts + 1
