@@ -462,15 +462,9 @@ def GradeContextFree(problem_info, solution_info) -> None:
         )
         return
 
-    # it should be impossible for one to be empty and the other not.
-    if len(false_positives) == 0 or len(false_negatives) == 0:
-        StoreGrade(
-            problem_info["id"],
-            0,
-            "length assumption incorrect; contact instructor",
-            True,
-        )
-        return
+    # for the false positives and negatives, it would be impossible for one to
+    # be empty and the other not _except_ that the student solution might be
+    # finite and thus it is actually possible.
 
     # because we're only checking up to N words we have to account for some
     # potential weirdness. if the student submission generated incorrect words
@@ -491,19 +485,25 @@ def GradeContextFree(problem_info, solution_info) -> None:
     real_false_positive = None
     real_false_negative = None
 
-    word = false_positives[0]
-    ok, output = RunMentor(problem_id, [mentor, solution_info["file"], "accept", word])
-    if not ok:
-        return
-    if "Input is not accepted" in output:
-        real_false_positive = word if word != "" else "ε"
+    if len(false_positives) > 0:
+        word = false_positives[0]
+        ok, output = RunMentor(
+            problem_id, [mentor, solution_info["file"], "accept", word]
+        )
+        if not ok:
+            return
+        if "Input is not accepted" in output:
+            real_false_positive = word if word != "" else "ε"
 
-    word = false_negatives[0]
-    ok, output = RunMentor(problem_id, [mentor, problem_info["file"], "accept", word])
-    if not ok:
-        return
-    if "Input is not accepted" in output:
-        real_false_negative = word if word != "" else "ε"
+    if len(false_negatives) > 0:
+        word = false_negatives[0]
+        ok, output = RunMentor(
+            problem_id, [mentor, problem_info["file"], "accept", word]
+        )
+        if not ok:
+            return
+        if "Input is not accepted" in output:
+            real_false_negative = word if word != "" else "ε"
 
     # it should be impossible not to have found at least one word.
     if real_false_negative == None and real_false_positive == None:
