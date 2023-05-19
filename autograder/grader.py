@@ -258,8 +258,6 @@ def GetProblemInfo(problem_file: str):
 #   'expected-type': "<{tm, htm}>",
 #   'point-value': <int>,
 #   'max-steps': <int>,
-#   'accept': <list of inputs to accept>,
-#   'reject': <list of inputs to reject>
 # }
 #
 # returns an empty dictionary {} if the filename was not in the correct format
@@ -315,7 +313,7 @@ def GetSolutionInfo(solution_file: str):
         ):
             return {}
 
-        # get wordlist from file.
+        # get wordlist from file to make some sanity checks.
         words = ""
         with open(solution_dir + solution_file, "r") as handle:
             words = handle.read()
@@ -328,12 +326,6 @@ def GetSolutionInfo(solution_file: str):
             or "## REJECT ##" not in wordlist
         ):
             return {}
-        wordlist = wordlist[1:]
-
-        # split into separate accept and reject lists.
-        reject_hdr_idx = wordlist.index("## REJECT ##")
-        accept = wordlist[:reject_hdr_idx]
-        reject = wordlist[reject_hdr_idx + 1 :]
 
         return {
             "file": solution_dir + solution_file,
@@ -341,8 +333,6 @@ def GetSolutionInfo(solution_file: str):
             "expected-type": pieces[3],
             "point-value": int(pieces[1]),
             "max-steps": int(pieces[2]),
-            "accept": accept,
-            "reject": reject,
         }
 
     # no pattern matched.
@@ -540,82 +530,21 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
 
     problem_id = problem_info["id"]
 
-    # we have to account for timeouts too; we'll use the first timeout
-    # wncountered as the student feedback. to avoid having too many timeouts
-    # take up all our cycles, we'll set a limit for the number of timeouts and
-    # stop grading when that limit is exceeded.
-    num_timeouts = 0
-    max_timeouts = 10
-    timedout_word = None
-
-    # run accept wordlist on student submission, stopping at the first mistake.
-    incorrect_rejection = None
-    for word in solution_info["accept"]:
-        ok, output = RunMentor(
-            problem_id,
-            [
-                mentor,
-                problem_info["file"],
-                "accept",
-                word,
-                str(solution_info["max-steps"]),
-            ],
-        )
-        if not ok:
-            return
-        if "Computation timed out" in output:
-            num_timeouts = num_timeouts + 1
-            if num_timeouts > max_timeouts:
-                StoreGrade(
-                    problem_info["id"],
-                    0,
-                    f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}",
-                    True,
-                )
-                return
-            if timedout_word == None:
-                timedout_word = word if word != "" else "ε"
-        elif "Input is not accepted" in output:
-            incorrect_rejection = word if word != "" else "ε"
-            break
-
-    # run reject worklist on student submission, stopping at the first mistake.
-    incorrect_acceptance = None
-    for word in solution_info["reject"]:
-        ok, output = RunMentor(
-            problem_id,
-            [
-                mentor,
-                problem_info["file"],
-                "accept",
-                word,
-                str(solution_info["max-steps"]),
-            ],
-        )
-        if not ok:
-            return
-        if "Computation timed out" in output:
-            num_timeouts = num_timeouts + 1
-            if num_timeouts > max_timeouts:
-                StoreGrade(
-                    problem_info["id"],
-                    0,
-                    f"Grading stopped: too many inputs timed out. One such input is: {timedout_word}",
-                    True,
-                )
-                return
-            if timedout_word == None:
-                timedout_word = word if word != "" else "ε"
-        elif "Input is accepted" in output:
-            incorrect_acceptance = word if word != "" else "ε"
-            break
-
-    # compute feedback and grade.
-    if (
-        incorrect_rejection == None
-        and incorrect_acceptance == None
-        and timedout_word == None
-    ):
+    # run student submission on wordlist.
+    ok, output = RunMentor(
+        problem_id,
+        [
+            mentor,
+            problem_info["file"],
+            "accept_file",
+            solution_info["file"],
+            str(solution_info["max-steps"]),
+        ],
+    )
+    if not ok:
+        return
+    
+    if "All inputs correctly categorized" in output:
         StoreGrade(
             problem_info["id"],
             solution_info["point-value"],
@@ -623,15 +552,12 @@ def GradeUnrestricted(problem_info, solution_info) -> None:
             True,
         )
     else:
-        msg = "Incorrect (points = 0):\n"
-        if incorrect_rejection != None:
-            msg += f"The word {incorrect_rejection} should be accepted.\n"
-        if incorrect_acceptance != None:
-            msg += f"The word {incorrect_acceptance} should be rejected.\n"
-        if timedout_word != None:
-            msg += f"The word {timedout_word} exceeds the maximum number of allowed steps.\n"
-        StoreGrade(problem_info["id"], 0, msg, True)
-
+        StoreGrade(
+            problem_info["id"],
+            0,
+            output,
+            True,
+        )
 
 # get the current submission time.
 now = GetTimeFromString(metadata["created_at"])
